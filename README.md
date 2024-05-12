@@ -52,6 +52,8 @@ You can copy the SQL statements from the `prep_database_query.sql` file and run 
 
 # Setting up Streamlit environment
 
+In this section we will configure our keys to use them into our Streamlit application.
+
 ## Configure secrets file
 Since our application will connect to Snowflake and OpenAI, we need a way to securely store our credentials. Luckily, [Streamlit's secrets management feature](https://docs.streamlit.io/deploy/streamlit-community-cloud/deploy-your-app/secrets-management) allows us to store secrets securely and access them in our Streamlit app as environment variables.
 
@@ -67,3 +69,84 @@ We need to add our OpenAI API key to our secrets file. Add your OpenAI key to th
 
 OPENAI_API_KEY = "sk-2v...X"
 ```
+
+### Add Snowflake credentials to `secrets.toml`
+
+We also need to add the Snowflake `user`, `password`, `warehouse`, `role`, and `account` to our secrets file. Copy the following format, replacing the placeholder credentials with your actual credentials. `account` should be your Snowflake account identifier, which you can locate by following the instructions outlined [here](https://docs.snowflake.com/en/user-guide/admin-account-identifier).
+
+If you prefer to use browser-based SSO to authenticate, replace `password = ""` with `authenticator=EXTERNALBROWSER`.
+
+```
+# .streamlit/secrets.toml
+
+[connections.snowflake]
+user = "<jdoe>"
+password = "<my_trial_pass>"
+warehouse = "COMPUTE_WH"
+role = "ACCOUNTADMIN"
+account = "<account-id>"
+```
+
+### Full contents of secrets.toml
+
+```
+# .streamlit/secrets.toml
+
+OPENAI_API_KEY = "sk-2v...X"
+
+[connections.snowflake]
+user = "<username>"
+password = "<password>"
+warehouse = "COMPUTE_WH"
+role = "ACCOUNTADMIN"
+account = "<account-id>"
+```
+
+## Validate credentials
+
+Let's validate that our Snowflake and OpenAI credentials are working as expected.
+
+### OpenAI credentials
+
+First, we'll validate our OpenAI credentials by asking GPT-3.5 a simple question: *what is Streamlit?*
+
+1. Add a file called `validate_credentials.py` at the root of your `llm-frosty-snowflake-chatbot` folder.
+2. Add the below code to `validate_credentials.py`. This snippet does the following:
+    - Imports the Streamlit and OpenAI Python packages.
+    - Retrieves our OpenAI API key from the secrets file.
+    - Sends GPT-3.5 the question "*What is Streamlit?*"
+    - Prints GPT-3.5's response to the UI using `st.write`
+
+```
+import streamlit as st
+from openai import OpenAI
+
+client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+
+completion = client.chat.completions.create(
+  model="gpt-3.5-turbo",
+  messages=[
+    {"role": "user", "content": "What is Streamlit?"}
+  ]
+)
+
+st.write(completion.choices[0].message.content)
+```
+
+3. Run your Streamlit app by entering `streamlit run validate_credentials.py` in the command line.
+
+### Snowflake credentials
+
+Next, let's validate that our Snowflake credentials are working as expected.
+
+1. Append the following to `validate_credentials.py`. This snippet does the following:
+    - Creates a Snowpark connection.
+    - Executes a query to pull the current warehouse and writes the result to the UI.
+
+```
+conn = st.connection("snowflake")
+df = conn.query("select current_warehouse()")
+st.write(df)
+```
+
+2. Run your Streamlit app by entering `streamlit run validate_credentials.py` in the command line.
