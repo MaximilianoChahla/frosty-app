@@ -38,4 +38,14 @@ Snowflake Marketplace provides visibility to a wide variety of datasets from thi
 
 Before building our app, we need to run a set of SQL statements in Snowflake to create two views. The first view is `FROSTY_SAMPLE.CYBERSYN_FINANCIAL.FINANCIAL_ENTITY_ATTRIBUTES_LIMITED`, which includes:
 
-- 
+- A subset of `cybersyn_financial__economic_essentials.cybersyn.financial_institution_attributes`:
+    - Totals for assets, real estate loans, securities, deposits; % of deposits insured; total employees.
+
+The second view is `FROSTY_SAMPLE.CYBERSYN_FINANCIAL.FINANCIAL_ENTITY_ANNUAL_TIME_SERIES`, which includes:
+
+- A modified version of `cybersyn_financial__economic_essentials.cybersyn.financial_institution_timeseries` as follows:
+    - Entity and attribute metadata is joined directly
+        - Only the set of attributes from `FINANCIAL_ENTITY_ATTRIBUTES_LIMITED` are exposed.
+        - Only the **end-of-year metrics (YYYY-12-31)** are included, and a YEAR column is provided instead of the date column.
+
+You can copy the SQL statements from the `prep_database_query.sql` file and run them in the worksheet created for your sample queries.
