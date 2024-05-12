@@ -7,8 +7,8 @@ Complete the following steps in your local machine (or an equivalent dev environ
 pip install -r requirements.txt
 ```
 
-- Notes:
-    - We use a python version 3.10 or greater.
+## Notes
+- The python version recommended is python 3.10 or greater.
 
 ## Troubleshooting pyarrow related issues
 - If you do not have `pyarrow` installed, you do not need to install it yourself; installing `Snowpark` automatically installs the appropriate version.
@@ -49,3 +49,21 @@ The second view is `FROSTY_SAMPLE.CYBERSYN_FINANCIAL.FINANCIAL_ENTITY_ANNUAL_TIM
         - Only the **end-of-year metrics (YYYY-12-31)** are included, and a YEAR column is provided instead of the date column.
 
 You can copy the SQL statements from the `prep_database_query.sql` file and run them in the worksheet created for your sample queries.
+
+# Setting up Streamlit environment
+
+## Configure secrets file
+Since our application will connect to Snowflake and OpenAI, we need a way to securely store our credentials. Luckily, [Streamlit's secrets management feature](https://docs.streamlit.io/deploy/streamlit-community-cloud/deploy-your-app/secrets-management) allows us to store secrets securely and access them in our Streamlit app as environment variables.
+
+1. Add a folder within your `llm-frosty-snowflake-chatbot` folder called `.streamlit`. Using the command line, you can do this by entering `mkdir .streamlit`.
+2. Within the `.streamlit` folder, add a file called `secrets.toml`. Using the command line, you can do this by first navigating to the `.streamlit` folder via `cd .streamlit` and then entering `touch secrets.toml`.
+
+### Add OpenAI credentials to `secrets.toml`
+
+We need to add our OpenAI API key to our secrets file. Add your OpenAI key to the secrets file with the following format (replace the placeholder API key with your actual API key).
+
+```
+# .streamlit/secrets.toml
+
+OPENAI_API_KEY = "sk-2v...X"
+```
