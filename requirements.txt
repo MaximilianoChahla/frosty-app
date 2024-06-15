@@ -5,3 +5,7 @@ streamlit-extras
 langchain
 langchain_openai
 langchain-together
+altair
+pandas
+pandasql
+Pillow
