@@ -21,6 +21,7 @@ def initialize_session_state():
     st.session_state.setdefault("error", None)
     st.session_state.setdefault("email_sent", set())
     st.session_state.setdefault("uploaded_data", None)
+    st.session_state.setdefault("user_prompt", "")
 
 # Function to send email to multiple recipients
 def send_email(to_addresses, subject, body, attachment_name, attachment_data):
@@ -32,7 +33,7 @@ def send_email(to_addresses, subject, body, attachment_name, attachment_data):
     msg['From'] = from_address
     msg['To'] = ", ".join(to_addresses)
     msg['Subject'] = subject
-    msg.attach(MIMEText(body, 'plain'))
+    msg.attach(MIMEText(body, 'html'))  # Use 'html' instead of 'plain'
 
     part = MIMEBase('application', "octet-stream")
     part.set_payload(attachment_data)
@@ -51,15 +52,25 @@ def send_email(to_addresses, subject, body, attachment_name, attachment_data):
         st.error(f"Error sending email: {e}")
 
 # Function to create email button and send email if clicked
-def send_email_button(email_addresses, message, idx):
+def send_email_button(email_addresses, message, idx, user_prompt):
     """Create an email button to send the results via email."""
     if st.button("Send to email", key=f"send_{idx}"):
         if all(email.strip() for email in email_addresses):
             csv_data = message["results"].to_csv(index=False)
+            email_body = f"""
+            <html>
+            <body>
+                <p><strong>User Prompt:</strong></p>
+                <p>{user_prompt}</p>
+                <br>
+                <p>Please find the attached data table.</p>
+            </body>
+            </html>
+            """
             send_email(
                 to_addresses=[email.strip() for email in email_addresses],
                 subject="Your Requested Data Table",
-                body="Please find the attached data table.",
+                body=email_body,
                 attachment_name="table_data.csv",
                 attachment_data=csv_data
             )
@@ -78,13 +89,14 @@ def display_chat_messages():
             if "results" in message:
                 st.dataframe(message["results"])
                 if idx not in st.session_state.email_sent:
-                    send_email_button(email_addresses, message, idx)
+                    send_email_button(email_addresses, message, idx, st.session_state.user_prompt)
 
 # Function to process chat input and generate a response
 def process_chat_input(model, client):
     """Process user input and generate a response from the selected AI model."""
     if prompt := st.chat_input():
         with st.chat_message("user"):
+            st.session_state.user_prompt = prompt  # Save the user's prompt
             st.session_state.messages.append({"role": "user", "content": prompt})
             prompt_container = st.empty()
             prompt_container.markdown(prompt)
@@ -142,7 +154,7 @@ def execute_sql_query(sql, message):
 
             # Email sending logic
             if len(st.session_state.messages) not in st.session_state.email_sent:
-                send_email_button(email_addresses, message, len(st.session_state.messages))
+                send_email_button(email_addresses, message, len(st.session_state.messages), st.session_state.user_prompt)
         except Exception as e:
             st.error(f"Error executing SQL query: {e}")
     else:
