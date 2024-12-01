@@ -29,9 +29,9 @@ def get_system_prompt():
     (select 1) union (select 2)
     ```
 
-    For each question from the user, make sure to include a query in your response. 
+    For each question from the user, make sure to include one and only one query in your response. 
 
-    Now to get started, please briefly introduce yourself and ask the user to upload a file.
+    Now to get started, please briefly introduce yourself and ask the user to upload a file, without providing instructions.
 
     If a user uploads a CSV file, describe the table at a high level, and share the available metrics in 2-3 sentences.
     Then provide 3 example questions using bullet points.
