@@ -1,7 +1,6 @@
 import re
 import smtplib
 import streamlit as st
-from openai import OpenAI
 from PIL import Image
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -22,6 +21,12 @@ def initialize_session_state():
     st.session_state.setdefault("email_sent", set())
     st.session_state.setdefault("uploaded_data", None)
     st.session_state.setdefault("user_prompt", "")
+    st.session_state.setdefault("prompt_submitted", False)
+    st.session_state.setdefault("csv_uploaded", False)
+    st.session_state.setdefault("uploaded_file_name", None)
+    st.session_state.setdefault("first_time", True)
+    st.session_state.setdefault("selected_model", "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo")
+    st.session_state.setdefault("model_changed", False)
 
 # Function to send email to multiple recipients
 def send_email(to_addresses, subject, body, attachment_name, attachment_data):
@@ -33,7 +38,7 @@ def send_email(to_addresses, subject, body, attachment_name, attachment_data):
     msg['From'] = from_address
     msg['To'] = ", ".join(to_addresses)
     msg['Subject'] = subject
-    msg.attach(MIMEText(body, 'html'))  # Use 'html' instead of 'plain'
+    msg.attach(MIMEText(body, 'html'))
 
     part = MIMEBase('application', "octet-stream")
     part.set_payload(attachment_data)
@@ -100,9 +105,9 @@ def process_chat_input(model, client):
             st.session_state.messages.append({"role": "user", "content": prompt})
             prompt_container = st.empty()
             prompt_container.markdown(prompt)
+            st.session_state.prompt_submitted = True  # Set the flag
 
-
-    if st.session_state.messages[-1]["role"] != "assistant":
+    if st.session_state.prompt_submitted or st.session_state.csv_uploaded or st.session_state.first_time or st.session_state.model_changed:
         with st.chat_message("assistant"):
             response = generate_response(model, client)
             message = {"role": "assistant", "content": response}
@@ -111,20 +116,19 @@ def process_chat_input(model, client):
             handle_sql_queries(response, message)
 
             st.session_state.messages.append(message)
+        st.session_state.prompt_submitted = False  # Reset the flags
+        st.session_state.csv_uploaded = False
+        st.session_state.first_time = False
+        st.session_state.model_changed = False
 
 # Function to generate AI response
 def generate_response(model, client):
     """Generate a response from the AI model."""
     response = ""
     resp_container = st.empty()
-    if model == "gpt-3.5-turbo-0125":
-        for delta in client.chat.completions.create(model="gpt-3.5-turbo", messages=[{"role": m["role"], "content": m["content"]} for m in st.session_state.messages], stream=True):
-            response += (delta.choices[0].delta.content or "")
-            resp_container.markdown(response)
-    else:
-        for m in client.stream(st.session_state.messages):
-            response += (m.content)
-            resp_container.markdown(response)
+    for m in client.stream(st.session_state.messages):
+        response += m.content
+        resp_container.markdown(response)
     return response
 
 # Function to handle SQL queries in AI response
@@ -164,14 +168,24 @@ def execute_sql_query(sql, message):
 def process_uploaded_file(uploaded_file):
     """Process and display the uploaded CSV file."""
     if uploaded_file is not None:
-        st.session_state.uploaded_data = pd.read_csv(uploaded_file)
-        st.write("Uploaded CSV file:")
-        st.dataframe(st.session_state.uploaded_data)
+        if uploaded_file.name != st.session_state.uploaded_file_name:
+            st.session_state.uploaded_file_name = uploaded_file.name
+            st.session_state.csv_uploaded = True  # Set the flag
+            st.session_state.uploaded_data = pd.read_csv(uploaded_file)
+            st.write("Uploaded CSV file:")
+            st.dataframe(st.session_state.uploaded_data)
 
-        csv_columns = list(st.session_state.uploaded_data.columns)
-        csv_context_prompt = get_user_prompt_with_csv_context(csv_columns)
+            csv_columns = list(st.session_state.uploaded_data.columns)
+            csv_context_prompt = get_user_prompt_with_csv_context(csv_columns)
 
-        st.session_state.messages.append({"role": "system", "content": csv_context_prompt})
+            # Append the CSV context as a system message
+            st.session_state.messages.append({"role": "system", "content": csv_context_prompt})
+            st.session_state.messages.append({"role": "user", "content": "I have uploaded a new CSV file."})
+        else:
+            st.session_state.csv_uploaded = False  # Reset the flag if same file
+    else:
+        st.session_state.uploaded_file_name = None
+        st.session_state.csv_uploaded = False  # Reset the flag
 
 # Function to replace table names in SQL queries with DataFrame names
 def replace_table_name_in_query(query, df_name):
@@ -180,39 +194,77 @@ def replace_table_name_in_query(query, df_name):
     return pattern.sub(f'FROM {df_name}', query)
 
 # Setup Streamlit Appearance
-st.set_page_config(page_title="CSV Chatbot using Langchain, OpenAI and Streamlit", page_icon="images/favicon.svg")
+st.set_page_config(
+    page_title="CSV Chatbot using Langchain, Together AI, and Streamlit",
+    page_icon="images/favicon.svg"
+)
 st.title("☃️ Frosty")
 
 initialize_session_state()
 
 # Sidebar
 with st.sidebar:
-    st.title("Querying CSV files using Langchain, OpenAI and Streamlit")
+    st.title("Querying CSV files using Langchain, Together AI, and Streamlit")
     image = Image.open('images/frosty.png')
-    with stylable_container(key="frosty_logo", css_styles="div[data-testid='stImage'] > img {width: 60%; margin: auto; border-radius: 50%;}"):
+    with stylable_container(
+        key="frosty_logo",
+        css_styles="div[data-testid='stImage'] > img {width: 60%; margin: auto; border-radius: 50%;}"
+    ):
         st.image(image, caption='Frosty App')
-    st.markdown("**Meet Frosty:** Your ultimate financial data companion. With provided CSV files, Frosty empowers efficient analysis and informed decision-making. Revolutionize your financial insights today.")
-    
+    st.markdown(
+        "**Meet Frosty:** Your ultimate financial data companion. With provided CSV files, "
+        "Frosty empowers efficient analysis and informed decision-making. Revolutionize your financial insights today."
+    )
+
+    # Store previous model selection
+    previous_model = st.session_state.selected_model
+
     model = st.selectbox(
         "Which Generative AI model would you like to use?",
-        ("gpt-3.5-turbo-0125", "meta-llama/Llama-3-70b-chat-hf", "Snowflake/snowflake-arctic-instruct", "togethercomputer/alpaca-7b", "google/gemma-7b-it"),
+        (
+            "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo",
+            "google/gemma-2-27b-it",
+            "nvidia/Llama-3.1-Nemotron-70B-Instruct-HF"
+        ),
         index=0,
         disabled=st.session_state.disabled,
         placeholder="Select a model...",
-        on_change=lambda: st.session_state.update(messages=[{"role": "system", "content": get_system_prompt()}], error=None)
     )
     st.write("You selected:", f"**{model}**")
-    with stylable_container(key="clean_button", css_styles="div[data-testid='stButton'] button {width: 100% !important;}"):
-        st.button('Clear chat history :fire:', on_click=lambda: st.session_state.update(messages=[{"role": "system", "content": get_system_prompt()}], error=None))
 
-    email_addresses = st.text_area("Enter email addresses (separated by commas):", "").split(',')
+    # Check if the model has changed
+    if model != previous_model:
+        st.session_state.selected_model = model
+        st.session_state.model_changed = True
+        st.session_state.messages.append({"role": "user", "content": f"I have selected a new model: {model}."})
+
+    with stylable_container(
+        key="clean_button",
+        css_styles="div[data-testid='stButton'] button {width: 100% !important;}"
+    ):
+        if st.button(
+            'Clear chat history :fire:',
+            on_click=lambda: st.session_state.update(
+                messages=[{"role": "system", "content": get_system_prompt()}],
+                error=None,
+                first_time=True
+            )
+        ):
+            st.session_state.first_time = True  # Ensure assistant greets again
+
+    email_addresses = st.text_area(
+        "Enter email addresses (separated by commas):",
+        ""
+    ).split(',')
 
     uploaded_file = st.file_uploader("Upload a CSV file for analysis", type=["csv"])
     process_uploaded_file(uploaded_file)
 
 # Initialize the chat client
-client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"]) if model == "gpt-3.5-turbo-0125" else ChatTogether(
-    together_api_key=st.secrets["TOGETHER_AI_API_KEY"], model=model)
+client = ChatTogether(
+    together_api_key=st.secrets["TOGETHER_AI_API_KEY"],
+    model=model
+)
 
 # Main logic
 try:

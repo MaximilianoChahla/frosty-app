@@ -1,179 +1,206 @@
-# Preparing our environment
+# Frosty CSV Chatbot
 
-Complete the following steps in your local machine (or an equivalent dev environment):
+Frosty is an interactive chatbot built using Streamlit, LangChain, Together AI, and pandas. It allows users to upload CSV files and interactively query them using natural language. Frosty leverages large language models to convert user prompts into SQL queries, execute them on the uploaded data, and display the results. Additionally, users can send the query results to specified email addresses directly from the app.
 
-- Open the terminal, go to the directory when the repository was downloaded and run the following command:
+[Frosty App](https://frosty-csv.streamlit.app/)
+
+## Table of Contents
+
+   - [Features](#features)
+   - [Demo](#demo)
+   - [Prerequisites](#prerequisites)
+   - [Installation](#installation)
+   - [Configuration](#configuration)
+   - [Project Structure](#project-structure)
+   - [Usage](#usage)
+   - [Customization](#customization)
+   - [Contributing](#contributing)
+   - [License](#license)
+   - [Acknowledgments](#acknowledgments)
+   - [Contact](#contact)
+
+## Features
+
+- **Natural Language Querying:** Ask questions in plain English, and Frosty will generate and execute the corresponding SQL queries on your CSV data.
+- **CSV File Upload:** Upload your own CSV files for analysis.
+- **Multiple AI Models:** Choose from different AI models provided by Together AI.
+- **Email Results:** Send query results via email to multiple recipients directly from the app.
+- **Interactive Chat Interface:** Engage in a conversational interface with the assistant.
+- **State Preservation:** The assistant retains context across interactions, even when switching AI models.
+
+## Demo
+
+[Frosty App](https://frosty-csv.streamlit.app/)
+
+## Prerequisites
+
+- Python 3.7 or higher
+- Together AI API Key (for accessing AI models)
+- Email account credentials (for sending emails via SMTP)
+- Streamlit account (optional, for deployment)
+
+## Installation
+
+1. **Clone the Repository**
+
+		git clone https://github.com/your-username/frosty-csv-chatbot.git
+		cd frosty-csv-chatbot
+
+2. **Create a Virtual Environment**
+
+		python -m venv venv
+		source venv/bin/activate  # On Windows, use `venv\Scripts\activate`
+
+3. **Install Dependencies**
+
+		pip install -r requirements.txt
+
+	**Contents of requirements.txt:**
+
+	    streamlit
+	    pandas
+	    pandasql
+	    Pillow
+	    streamlit-extras
+	    langchain-together
+
+## Configuration
+
+1. **Setup Secrets**
+
+	Create a `.streamlit` directory in the root of your project if it doesn't exist:
+
+		mkdir .streamlit
+
+	Create a `secrets.toml` file inside the `.streamlit` directory:
+
+		touch .streamlit/secrets.toml
+
+	Add the following to `secrets.toml`:
+
+		[EMAIL]
+		ADDRESS = "your_email@example.com"
+		PASSWORD = "your_email_password"
+
+		[TOGETHER_AI]
+		TOGETHER_AI_API_KEY= "your_together_ai_api_key"
+
+	Replace placeholder values with your actual credentials.
+	
+2. **Email Configuration**
+
+- Ensure that your email provider supports SMTP and that you have enabled SMTP access.
+- For Gmail users, you may need to enable Less Secure Apps or use an App Password if you have 2FA enabled.
+
+## Project Structure
 ```
-pip install -r requirements.txt
+frosty-csv-chatbot/
+├── images/
+│   └── frosty.png
+├── frosty_csv.py
+├── prompts_csv.py
+├── requirements.txt
+└── .streamlit/
+    └── secrets.toml
 ```
+- `frosty_csv.py`: Main Streamlit app script.
+- `prompts_csv.py`: Contains prompt templates for the assistant.
+- `images/`: Directory containing images used in the app.
+- `requirements.txt`: Lists all Python dependencies.
+- `.streamlit/secrets.toml`: Contains secret keys and credentials.
 
-## Notes
-- The python version recommended is python 3.10 or greater.
-- If you do not have `pyarrow` installed, you do not need to install it yourself; installing `Snowpark` automatically installs the appropriate version.
-- Do not reinstall a different version of pyarrow after installing Snowpark.
+## Usage
 
-# Accessing data on Snowflake Marketplace
+1. **Run the Streamlit App**
 
-Snowflake Marketplace provides visibility to a wide variety of datasets from third-party data stewards which broaden access to data points used to transform business processes. Snowflake Marketplace also removes the need to integrate and model data by providing secure access to data sets fully maintained by the data provider.
+		streamlit run frosty_csv.py
 
-## Log into Snowsight
+2. **Interact with Frosty**
+- **Upload a CSV File:** Use the file uploader in the sidebar to upload your CSV file.
+- **Select an AI Model:** Choose your preferred AI model from the dropdown.
+- **Enter Email Addresses:** Provide email addresses to send query results.
+- **Ask Questions:** Use the chat input to ask questions about your data.
+- **Send Results via Email:** Click the "Send to email" button to email the results.
 
-1. In a supported web browser, navigate to https://app.snowflake.com.
-2. Provide your account name or account URL. If you've previously signed in to Snowsight, you might see an account name that you can select.
-3. Sign in using your Snowflake account credentials.
+## Customization
 
-## Obtain dataset from Snowflake Marketplace
+### Modifying Prompts
 
-1. At the top left corner, make sure you are logged in as ACCOUNTADMIN (switch role to ACCOUNTADMIN if not).
-2. Navigate to the Cybersyn Financial & Economic Essentials listing in the Snowflake Marketplace by clicking [here](https://t.influ2.com/p/g/?clid=60a8506e-1d1b-4f8d-b9b5-22274c239afb&a=&caid=&s=&dt=Frosty%3A%20Build%20an%20LLM%20Chatbot%20in%20Streamlit%20on%20your%20Snowflake%20Data&id=here&ref=https%3A%2F%2Fquickstarts.snowflake.com%2Fguide%2Ffrosty_llm_chatbot_on_streamlit_snowflake%2F%3F_fsi%3DxxsTvsN0%230&r=https%3A%2F%2Fapp.snowflake.com%2Fmarketplace%2Flisting%2FGZTSZAS2KF7%2Fcybersyn-inc-cybersyn-financial-economic-essentials%3F_fsi%3DxxsTvsN0%26_fsi%3DxxsTvsN0).
-3. Select "**Get.**"
-4. Select the appropriate roles to access the database being created and accept the Snowflake consumer terms and Cybersyn's terms of use.
-5. Select "**Query Data,**" which will open a worksheet with example queries.
+`prompts_csv.py` contains functions that generate prompts for the assistant.
 
-![Snowflake Financial Data Example](/images/example_data.png)
+	# prompts_csv.py
 
-## Prep database
+	def get_system_prompt():
+	    return "You are Frosty, an assistant that helps users query their CSV files."
 
-Before building our app, we need to run a set of SQL statements in Snowflake to create two views. The first view is `FROSTY_SAMPLE.CYBERSYN_FINANCIAL.FINANCIAL_ENTITY_ATTRIBUTES_LIMITED`, which includes:
+	def get_user_prompt_with_csv_context(csv_columns):
+	    return f"The CSV file has the following columns: {', '.join(csv_columns)}."
 
-- A subset of `cybersyn_financial__economic_essentials.cybersyn.financial_institution_attributes`:
-    - Totals for assets, real estate loans, securities, deposits; % of deposits insured; total employees.
+Customize these functions to change how the assistant interacts.
 
-The second view is `FROSTY_SAMPLE.CYBERSYN_FINANCIAL.FINANCIAL_ENTITY_ANNUAL_TIME_SERIES`, which includes:
+### Changing AI Models
 
-- A modified version of `cybersyn_financial__economic_essentials.cybersyn.financial_institution_timeseries` as follows:
-    - Entity and attribute metadata is joined directly
-        - Only the set of attributes from `FINANCIAL_ENTITY_ATTRIBUTES_LIMITED` are exposed.
-        - Only the **end-of-year metrics (YYYY-12-31)** are included, and a YEAR column is provided instead of the date column.
+The app uses Together AI models. Update the model list in frosty_csv.py if needed.
 
-You can copy the SQL statements from the `prep_database_query.sql` file and run them in the worksheet created for your sample queries.
+	model = st.selectbox(
+	    "Which Generative AI model would you like to use?",
+	    (
+	        "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo",
+	        "google/gemma-2-27b-it",
+	        "nvidia/Llama-3.1-Nemotron-70B-Instruct-HF"
+	    ),
+	    index=0,
+	    disabled=st.session_state.disabled,
+	    placeholder="Select a model...",
+	)
 
-# Setting up Streamlit environment
+### Updating Email Functionality
 
-In this section we will configure our keys to use them into our Streamlit application.
+The email sending function uses SMTP. Modify the `send_email` function in `frosty_csv.py` to change the email template or to use a different email service.
 
-## Configure secrets file
-Since our application will connect to Snowflake and OpenAI, we need a way to securely store our credentials. Luckily, [Streamlit's secrets management feature](https://docs.streamlit.io/deploy/streamlit-community-cloud/deploy-your-app/secrets-management) allows us to store secrets securely and access them in our Streamlit app as environment variables.
+## Contributing
 
-1. Add a folder within your `llm-frosty-snowflake-chatbot` folder called `.streamlit`. Using the command line, you can do this by entering `mkdir .streamlit`.
-2. Within the `.streamlit` folder, add a file called `secrets.toml`. Using the command line, you can do this by first navigating to the `.streamlit` folder via `cd .streamlit` and then entering `touch secrets.toml`.
+Contributions are welcome! Please follow these steps:
 
-### Add OpenAI credentials to `secrets.toml`
+1. **Fork the Repository**
 
-We need to add our OpenAI API key to our secrets file. Add your OpenAI key to the secrets file with the following format (replace the placeholder API key with your actual API key).
+	Click the "Fork" button at the top right corner of the repository page.
 
-```
-# .streamlit/secrets.toml
+2. **Clone Your Fork**
 
-OPENAI_API_KEY = "sk-2v...X"
-```
+		git clone https://github.com/your-username/frosty-csv-chatbot.git
 
-### Add Snowflake credentials to `secrets.toml`
+3. **Create a New Branch**
 
-We also need to add the Snowflake `user`, `password`, `warehouse`, `role`, and `account` to our secrets file. Copy the following format, replacing the placeholder credentials with your actual credentials. `account` should be your Snowflake account identifier, which you can locate by following the instructions outlined [here](https://docs.snowflake.com/en/user-guide/admin-account-identifier).
+		git checkout -b feature/your-feature-name
 
-If you prefer to use browser-based SSO to authenticate, replace `password = ""` with `authenticator=EXTERNALBROWSER`.
+4. **Make Changes and Commit**
+		
+		git add .
+		git commit -m "Add your commit message"
 
-```
-# .streamlit/secrets.toml
+5. **Push to Your Fork**
 
-[connections.snowflake]
-user = "<jdoe>"
-password = "<my_trial_pass>"
-warehouse = "COMPUTE_WH"
-role = "ACCOUNTADMIN"
-account = "<account-id>"
-```
+	    git push origin feature/your-feature-name
 
-### Full contents of secrets.toml
+6. **Submit a Pull Request**
+	
+	Go to the original repository and click on "Pull Requests" to submit your PR.
 
-```
-# .streamlit/secrets.toml
+## License
 
-OPENAI_API_KEY = "sk-2v...X"
+This project is licensed under the MIT License. See the LICENSE file for details.
 
-[connections.snowflake]
-user = "<username>"
-password = "<password>"
-warehouse = "COMPUTE_WH"
-role = "ACCOUNTADMIN"
-account = "<account-id>"
-```
+## Acknowledgments
 
-## Validate credentials
+- Streamlit for the interactive web app framework.
+- LangChain and Together AI for AI model integration.
+- pandas and pandasql for data manipulation and SQL querying.
+- Pillow for image handling.
+- Streamlit Extras for additional Streamlit components.
 
-Let's validate that our Snowflake and OpenAI credentials are working as expected.
+## Contact
 
-### OpenAI credentials
+For any questions or suggestions, please open an issue or contact maxichahla@gmail.com.
 
-First, we'll validate our OpenAI credentials by asking GPT-3.5 a simple question: *what is Streamlit?*
-
-1. Add a file called `validate_credentials.py` at the root of your `llm-frosty-snowflake-chatbot` folder.
-2. Add the below code to `validate_credentials.py`. This snippet does the following:
-    - Imports the Streamlit and OpenAI Python packages.
-    - Retrieves our OpenAI API key from the secrets file.
-    - Sends GPT-3.5 the question "*What is Streamlit?*"
-    - Prints GPT-3.5's response to the UI using `st.write`
-
-```
-import streamlit as st
-from openai import OpenAI
-
-client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
-
-completion = client.chat.completions.create(
-  model="gpt-3.5-turbo",
-  messages=[
-    {"role": "user", "content": "What is Streamlit?"}
-  ]
-)
-
-st.write(completion.choices[0].message.content)
-```
-
-3. Run your Streamlit app by entering `streamlit run validate_credentials.py` in the command line.
-
-### Snowflake credentials
-
-Next, let's validate that our Snowflake credentials are working as expected.
-
-1. Append the following to `validate_credentials.py`. This snippet does the following:
-    - Creates a Snowpark connection.
-    - Executes a query to pull the current warehouse and writes the result to the UI.
-
-```
-conn = st.connection("snowflake")
-df = conn.query("select current_warehouse()")
-st.write(df)
-```
-
-2. Run your Streamlit app by entering `streamlit run validate_credentials.py` in the command line.
-
-# Run the Frosty app locally
-
-1. Open the terminal, go to the location in which we downloaded the repo and run the following:
-
-```
-streamlit run frosty_app.py
-```
-
-A new window browser will be open.
-
-# Explore the data via natural language
-
-Finally, it's time to explore the Cybersyn Financial & Economic Essentials using natural language. Try asking Frosty any of the following questions:
-
-1. Which financial institution had the highest total assets in the year 2020?
-2. Which financial institutions in California had the highest total assets value between 2010 to 2015?
-3. What was the highest % insured (estimated) value for all financial institutions in the state of New Jersey?
-4. What is the lowest value of total securities for all financial institutions in Texas?
-5. What was the % change in all real estate loans for banks headquartered in California between 2015 and 2020?
-6. What was the average total securities value for banks in the state of Wisconsin between 2015 and 2020?
-7. How have the total securities value changed over time for financial institutions in New York City?
-8. What was the maximum % insured (estimated) value for a single financial entity in Illinois between 2010 and 2020?
-9. What was the value of all real estate loans for banks located in Massachusetts in 2020?
-10. How many banks headquartered in New Hampshire experienced more than 50% growth in their total assets between 2015 and 2020?
-
-# Additional resources
-
-- [Streamlit Extras](https://arnaudmiribel.github.io/streamlit-extras/extras/stylable_container/)
+Enjoy using Frosty for your data analysis tasks!
